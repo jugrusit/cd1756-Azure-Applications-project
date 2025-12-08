@@ -1,3 +1,4 @@
+# FlaskWebProject/__init__.py
 """
 The flask application package.
 """
@@ -10,7 +11,15 @@ from flask_session import Session
 
 app = Flask(__name__)
 app.config.from_object(Config)
-# TODO: Add any logging levels and handlers with app.logger
+
+# Logging setup
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s"
+)
+app.logger.setLevel(logging.INFO)
+app.logger.info("Article CMS app initialized.")
+
 Session(app)
 db = SQLAlchemy(app)
 login = LoginManager(app)
