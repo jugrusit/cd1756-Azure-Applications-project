@@ -108,7 +108,7 @@ def authorized():
             result = msal_app.acquire_token_by_authorization_code(
                 request.args['code'],
                 scopes=Config.SCOPE,
-                redirect_uri=url_for("authorized", _external=True)
+                redirect_uri=url_for("authorized", _external=True, _scheme="https")
             )
         except Exception as e:
             app.logger.exception("Microsoft login failed during token acquisition.")
@@ -165,11 +165,12 @@ def _build_msal_app(cache=None, authority=None):
     )
 
 def _build_auth_url(authority=None, scopes=None, state=None):
-    # Generate the authorization request URL with proper redirect
     msal_app = _build_msal_app(authority=authority)
     return msal_app.get_authorization_request_url(
         scopes or [],
         state=state,
-        redirect_uri=url_for("authorized", _external=True)
+        # Force https
+        redirect_uri=url_for("authorized", _external=True, _scheme="https")
     )
+
 
