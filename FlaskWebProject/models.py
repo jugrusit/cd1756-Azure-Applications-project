@@ -52,17 +52,39 @@ class Post(db.Model):
         self.user_id = userId
 
         if file:
-            filename = secure_filename(file.filename);
-            fileextension = filename.rsplit('.',1)[1];
-            Randomfilename = id_generator();
-            filename = Randomfilename + '.' + fileextension;
+            filename = secure_filename(file.filename)
+            fileextension = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+            Randomfilename = id_generator()
+            filename = f"{Randomfilename}.{fileextension}" if fileextension else Randomfilename
+        
             try:
+                # Safe attempt to ensure container exists (no-op if it already exists)
+                try:
+                    blob_service.create_container(blob_container)
+                except Exception:
+                    pass  # likely already exists
+        
+                # Upload stream to blob
                 blob_service.create_blob_from_stream(blob_container, filename, file)
-                if(self.image_path):
-                    blob_service.delete_blob(blob_container, self.image_path)
-            except Exception:
-                flash(Exception)
-            self.image_path =  filename
+                app.logger.info(f"Image uploaded to blob: {blob_container}/{filename}")
+        
+                # Delete old image if present
+                if self.image_path:
+                    try:
+                        blob_service.delete_blob(blob_container, self.image_path)
+                        app.logger.info(f"Old image deleted: {blob_container}/{self.image_path}")
+                    except Exception as e_del:
+                        app.logger.warning(f"Failed to delete old image '{self.image_path}': {e_del}")
+        
+                # Persist the new path
+                self.image_path = filename
+        
+            except Exception as e:
+                app.logger.exception(f"Blob upload failed for '{filename}': {e}")
+                flash("Image upload failed. Please try a small .png/.jpg and retry.")
+                # Optionally: raise to abort save; or leave to continue without image
+                # raise
+
         if new:
             db.session.add(self)
         db.session.commit()
